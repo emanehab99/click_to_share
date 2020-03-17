@@ -38,6 +38,7 @@ import 'package:image/image.dart' as img;
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
 // import 'package:simple_permissions/simple_permissions.dart';
 import 'package:stats/stats.dart';
+import 'package:geolocator/geolocator.dart';
 
 class PreviewImageScreen extends StatefulWidget {
   final String imagePath;
@@ -48,9 +49,13 @@ class PreviewImageScreen extends StatefulWidget {
   _PreviewImageScreenState createState() => _PreviewImageScreenState();
 }
 
-
-
 class _PreviewImageScreenState extends State<PreviewImageScreen> {
+
+  final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
+  Position _currentPosition;
+  String _currentAddress = '';
+  num _pixelAvg = 0.0;
+
   @override
   Widget build(BuildContext context) {   
 
@@ -77,6 +82,7 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
                   onPressed: () {
                     // _processImage();
                     // addImageTag();
+                    _getCurrentLocation();
                     getBytesFromImage().then((bytes) {
                       _processImage(bytes);
                       // File('testimage.png').openWrite('image/').writeAsBytesSync(bytes.buffer.asUint32List());
@@ -89,6 +95,9 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
                 ),
               ),
             ),
+            Text('Average Pixel value: $_pixelAvg'),
+            Text('Latitude: ${_currentPosition.latitude}, Longtitude: ${_currentPosition.longitude}'),
+            Text('Current address: $_currentAddress'),
           ],
         ),
       ),
@@ -110,8 +119,9 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
     try{
 
       img.Image image = img.decodeImage(bytes);
-
+      
       final stats = Stats.fromData(image.data);
+      _pixelAvg = stats.average;
       print(stats.withPrecision(3));
 
       // Tagging the image with a timestamp
@@ -136,6 +146,35 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
       print(e);
       exit(0);
     }
-    
+  }
+
+  _getCurrentLocation() {
+    geolocator
+      .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
+      .then((Position position) {
+        setState(() {
+        _currentPosition = position;
+      });
+
+      _getAddressFromLatLng();
+    }).catchError((e) {
+      print(e);
+    });
+  }
+
+  _getAddressFromLatLng() async {
+    try {
+      List<Placemark> p = await geolocator.placemarkFromCoordinates(
+          _currentPosition.latitude, _currentPosition.longitude);
+
+      Placemark place = p[0];
+
+      setState(() {
+        _currentAddress =
+            "${place.locality}, ${place.postalCode}, ${place.country}";
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 }
