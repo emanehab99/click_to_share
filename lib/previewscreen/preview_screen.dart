@@ -60,7 +60,7 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
   Widget build(BuildContext context) {   
 
     // SimplePermissions.requestPermission(Permission.WriteExternalStorage);
-
+    
     return Scaffold(
       appBar: AppBar(
         title: Text('Preview'),
@@ -95,9 +95,15 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
                 ),
               ),
             ),
-            Text('Average Pixel value: $_pixelAvg'),
-            Text('Latitude: ${_currentPosition.latitude}, Longtitude: ${_currentPosition.longitude}'),
-            Text('Current address: $_currentAddress'),
+            Container(
+              child: Text('Average Pixel value: $_pixelAvg'),
+              ),
+            Container(
+              child: _currentPosition != null? Text('Latitude: ${_currentPosition.latitude}, Longtitude: ${_currentPosition.longitude}') : Text("No position detected"),
+            ),
+            Container(
+              child: _currentPosition != null? Text('Current address: $_currentAddress') : Text("No address detected"),
+            )
           ],
         ),
       ),
