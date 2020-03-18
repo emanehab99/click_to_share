@@ -32,30 +32,38 @@ import 'dart:io';
 import 'dart:typed_data';
 // import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path/path.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:native_device_orientation/native_device_orientation.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
 // import 'package:simple_permissions/simple_permissions.dart';
 import 'package:stats/stats.dart';
+import 'package:geolocator/geolocator.dart';
+
 
 class PreviewImageScreen extends StatefulWidget {
   final String imagePath;
+  final NativeDeviceOrientation orientation;
 
-  PreviewImageScreen({this.imagePath});
+  PreviewImageScreen({this.imagePath, this.orientation});
 
   @override
   _PreviewImageScreenState createState() => _PreviewImageScreenState();
 }
 
-
-
 class _PreviewImageScreenState extends State<PreviewImageScreen> {
+
+  final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
+  Position _currentPosition;
+  String _currentAddress = '';
+  num _pixelAvg = 0.0;
+
   @override
   Widget build(BuildContext context) {   
 
     // SimplePermissions.requestPermission(Permission.WriteExternalStorage);
-
+    
     return Scaffold(
       appBar: AppBar(
         title: Text('Preview'),
@@ -77,6 +85,7 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
                   onPressed: () {
                     // _processImage();
                     // addImageTag();
+                    _getCurrentLocation();
                     getBytesFromImage().then((bytes) {
                       _processImage(bytes);
                       // File('testimage.png').openWrite('image/').writeAsBytesSync(bytes.buffer.asUint32List());
@@ -88,6 +97,18 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
                   child: Text('Info'),
                 ),
               ),
+            ),
+            Container(
+              child: Text('Average Pixel value: $_pixelAvg'),
+              ),
+            Container(
+              child: _currentPosition != null? Text('Latitude: ${_currentPosition.latitude}, Longtitude: ${_currentPosition.longitude}') : Text("No position detected"),
+            ),
+            Container(
+              child: _currentPosition != null? Text('Current address: $_currentAddress') : Text("No address detected"),
+            ),
+            Container(
+              child: Text("Orientation: ${widget.orientation}"),
             ),
           ],
         ),
@@ -110,8 +131,9 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
     try{
 
       img.Image image = img.decodeImage(bytes);
-
+      
       final stats = Stats.fromData(image.data);
+      _pixelAvg = stats.average;
       print(stats.withPrecision(3));
 
       // Tagging the image with a timestamp
@@ -136,6 +158,35 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
       print(e);
       exit(0);
     }
-    
+  }
+
+  _getCurrentLocation() {
+    geolocator
+      .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
+      .then((Position position) {
+        setState(() {
+        _currentPosition = position;
+      });
+
+      _getAddressFromLatLng();
+    }).catchError((e) {
+      print(e);
+    });
+  }
+
+  _getAddressFromLatLng() async {
+    try {
+      List<Placemark> p = await geolocator.placemarkFromCoordinates(
+          _currentPosition.latitude, _currentPosition.longitude);
+
+      Placemark place = p[0];
+
+      setState(() {
+        _currentAddress =
+            "${place.locality}, ${place.postalCode}, ${place.country}";
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 }
