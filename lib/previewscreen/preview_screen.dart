@@ -32,18 +32,21 @@ import 'dart:io';
 import 'dart:typed_data';
 // import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path/path.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:native_device_orientation/native_device_orientation.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
 // import 'package:simple_permissions/simple_permissions.dart';
 import 'package:stats/stats.dart';
 import 'package:geolocator/geolocator.dart';
 
+
 class PreviewImageScreen extends StatefulWidget {
   final String imagePath;
+  final NativeDeviceOrientation orientation;
 
-  PreviewImageScreen({this.imagePath});
+  PreviewImageScreen({this.imagePath, this.orientation});
 
   @override
   _PreviewImageScreenState createState() => _PreviewImageScreenState();
@@ -103,7 +106,10 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
             ),
             Container(
               child: _currentPosition != null? Text('Current address: $_currentAddress') : Text("No address detected"),
-            )
+            ),
+            Container(
+              child: Text("Orientation: ${widget.orientation}"),
+            ),
           ],
         ),
       ),
