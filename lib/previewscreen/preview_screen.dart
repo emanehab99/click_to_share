@@ -30,23 +30,20 @@
 
 import 'dart:io';
 import 'dart:typed_data';
-// import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:flutter/material.dart';
-// import 'package:path/path.dart';
-// import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:native_device_orientation/native_device_orientation.dart';
-// import 'package:image_gallery_saver/image_gallery_saver.dart';
-// import 'package:simple_permissions/simple_permissions.dart';
 import 'package:stats/stats.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:click_to_share/utils/location.dart';
 
 
 class PreviewImageScreen extends StatefulWidget {
   final String imagePath;
   final NativeDeviceOrientation orientation;
+  final ImageLocation imageLocation;
 
-  PreviewImageScreen({this.imagePath, this.orientation});
+  PreviewImageScreen({this.imagePath, this.orientation, this.imageLocation});
 
   @override
   _PreviewImageScreenState createState() => _PreviewImageScreenState();
@@ -54,16 +51,21 @@ class PreviewImageScreen extends StatefulWidget {
 
 class _PreviewImageScreenState extends State<PreviewImageScreen> {
 
-  final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
-  Position _currentPosition;
-  String _currentAddress = '';
+  
   num _pixelAvg = 0.0;
 
   @override
   Widget build(BuildContext context) {   
 
-    // SimplePermissions.requestPermission(Permission.WriteExternalStorage);
-    
+    Position _currentPosition = widget.imageLocation.position;
+    Placemark _currentAddress = widget.imageLocation.address; 
+
+    getBytesFromImage().then((bytes){
+      _processImage(bytes);
+    });
+
+    String time = DateTime.now().toString();
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Preview'),
@@ -77,48 +79,35 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
                 flex: 2,
                 child: Image.file(File(widget.imagePath), fit: BoxFit.cover)),
             SizedBox(height: 10.0),
-            Flexible(
-              flex: 1,
-              child: Container(
-                padding: EdgeInsets.all(60.0),
-                child: RaisedButton(
-                  onPressed: () {
-                    // _processImage();
-                    // addImageTag();
-                    _getCurrentLocation();
-                    getBytesFromImage().then((bytes) {
-                      _processImage(bytes);
-                      // File('testimage.png').openWrite('image/').writeAsBytesSync(bytes.buffer.asUint32List());
-                      // Share.file('Share via:', basename(widget.imagePath),
-                      //     bytes.buffer.asUint8List(), 'image/png');
-                    // });
-                    });
-                  },
-                  child: Text('Info'),
-                ),
-              ),
+            Container(
+              padding: EdgeInsets.fromLTRB(5.0, 10.0, 5.0, 0.0),
+              child: Text('Time: $time}'),
             ),
             Container(
+              padding: EdgeInsets.fromLTRB(5.0, 0.0, 5.0, 0.0),
               child: Text('Average Pixel value: $_pixelAvg'),
               ),
             Container(
-              child: _currentPosition != null? Text('Latitude: ${_currentPosition.latitude}, Longtitude: ${_currentPosition.longitude}') : Text("No position detected"),
+              padding: EdgeInsets.fromLTRB(5.0, 0.0, 5.0, 0.0),
+              child: 
+              _currentPosition != null?
+                Text('Latitude: ${_currentPosition.latitude}, Longtitude: ${_currentPosition.longitude}') : 
+                Text("No position detected"),
             ),
             Container(
-              child: _currentPosition != null? Text('Current address: $_currentAddress') : Text("No address detected"),
+              padding: EdgeInsets.fromLTRB(5.0, 0.0, 5.0, 0.0),
+              child: _currentPosition != null? 
+                Text('Current address: ${_currentAddress.locality}, ${_currentAddress.postalCode}, ${_currentAddress.country}') : 
+                Text("No address detected"),
             ),
             Container(
+              padding: EdgeInsets.fromLTRB(5.0, 0.0, 5.0, 10.0),
               child: Text("Orientation: ${widget.orientation}"),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<ByteData> getBytesFromFile() async {
-    Uint8List bytes = File(widget.imagePath).readAsBytesSync() as Uint8List;
-    return ByteData.view(bytes.buffer);
   }
 
   Future<Uint8List> getBytesFromImage() async {
@@ -133,60 +122,12 @@ class _PreviewImageScreenState extends State<PreviewImageScreen> {
       img.Image image = img.decodeImage(bytes);
       
       final stats = Stats.fromData(image.data);
-      _pixelAvg = stats.average;
-      print(stats.withPrecision(3));
-
-      // Tagging the image with a timestamp
-      // img.Image taggedimage = img.drawString(image, img.arial_14, 50, 50, 'Test');
-      // String path = join((await getApplicationDocumentsDirectory()).path, '${DateTime.now()}.png');
-      // File file = File(path);
-      // file.writeAsBytesSync(img.encodePng(taggedimage));
-      // print(image.getPixel(50, 50));
-      // print(taggedimage.getBytes().length);
-
-
-      // Saving image to storage
-      // Uint8List newbytes = taggedimage.getBytes();
-      // print(newbytes.length);
-      // final result = await ImageGallerySaver.saveImage(newbytes);
-      // print(result);
-      // print("Image width: ${image.width}");
-        // print(image.data);
-      
-        
+      setState(() {
+        _pixelAvg = stats.average;
+      });
     } catch (e){
       print(e);
       exit(0);
-    }
-  }
-
-  _getCurrentLocation() {
-    geolocator
-      .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
-      .then((Position position) {
-        setState(() {
-        _currentPosition = position;
-      });
-
-      _getAddressFromLatLng();
-    }).catchError((e) {
-      print(e);
-    });
-  }
-
-  _getAddressFromLatLng() async {
-    try {
-      List<Placemark> p = await geolocator.placemarkFromCoordinates(
-          _currentPosition.latitude, _currentPosition.longitude);
-
-      Placemark place = p[0];
-
-      setState(() {
-        _currentAddress =
-            "${place.locality}, ${place.postalCode}, ${place.country}";
-      });
-    } catch (e) {
-      print(e);
     }
   }
 }

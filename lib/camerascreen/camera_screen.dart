@@ -34,9 +34,8 @@ import 'package:click_to_share/previewscreen/preview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-// import 'package:image/image.dart' as img;
-// import 'dart:io';
 import 'package:native_device_orientation/native_device_orientation.dart';
+import 'package:click_to_share/utils/location.dart';
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -224,12 +223,14 @@ class _CameraScreenState extends State {
       await controller.takePicture(path);
 
       print(MediaQuery.of(context).orientation);
+
+      final imgLoc = await LocationUtils().getGeoLocation();
         
       NativeDeviceOrientationCommunicator().orientation(useSensor: true).then((nativeOrientation){      
         Navigator.push(
         context, 
         MaterialPageRoute(
-          builder: (context) => PreviewImageScreen(imagePath: path, orientation:nativeOrientation,)
+          builder: (context) => PreviewImageScreen(imagePath: path, orientation:nativeOrientation, imageLocation: imgLoc)
           ),
         );
       }).catchError((e){print(e);});
@@ -245,6 +246,5 @@ class _CameraScreenState extends State {
     print('Error: ${e.code}\n${e.description}');
   }
 
-  
   
 }
